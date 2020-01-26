@@ -161,8 +161,18 @@ namespace curio_firmware {
     }
   } // namespace radio_control
   
+  /// \brief Monitor interrupts for new radio control PWM data and publish to ROS
   class RadioControlPwm {
-    public:  
+    public:
+      /// \brief Constructor
+      ///
+      /// \param topic : const char*
+      ///       The ROS topic string to publish PWM data
+      /// \param ch_pin0 : byte
+      ///       The Arduino interrupt pin for PWM data on channel 0
+      /// \param detect_pwm_isr0 : void (*detect_pwm_isr0)(void)
+      ///       An interrupt service routine PWM data on channel 0
+      /// Similarly for the remaining parameters... 
       RadioControlPwm(
         const char *topic,
         byte ch_pin0=CH_PIN0, void (*detect_pwm_isr0)(void)=radio_control::detect_pwm_isr0,
@@ -190,6 +200,10 @@ namespace curio_firmware {
       {
       }
   
+      /// \brief Initialise the publishers and subscribers
+      ///
+      /// \param nh : ros::NodeHandle
+      ///       The ROS node handle.
       void init(ros::NodeHandle &nh) {
         // Capture NodeHandle
         nh_ = &nh;
@@ -211,6 +225,10 @@ namespace curio_firmware {
         }
       }
   
+      /// \brief Update the PWM state with the latest values
+      ///
+      /// \param pwm0 The PWM state of channel0
+      /// Similarly for the remaining parameters... 
       void update(
         int pwm0=radio_control::pwm0,
         int pwm1=radio_control::pwm1,
@@ -229,6 +247,7 @@ namespace curio_firmware {
         have_new_ = true;
       }
       
+      /// \brief Publish all messages
       void publish() {
         channels_msg_.channels_length = channels_length_;
         channels_msg_.channels = channels_;
@@ -236,6 +255,9 @@ namespace curio_firmware {
         have_new_ = false;
       }
       
+      /// \brief Check if new data has been received from the RC receiver
+      ///
+      /// \returns True if new data has been received.
       bool have_new() const {
         return have_new_;
       }

@@ -49,9 +49,16 @@
 
 namespace curio_firmware {
   
+  /// \brief Decode radio control SUMD messages and publish to ROS
   class RadioControlSumD {
     public:  
       
+      /// \brief Constructor
+      ///
+      /// \param serial : HardwareSerial
+      ///       A reference to the hardware serial device
+      /// \param topic : const char*
+      ///       The ROS topic string to publish PWM data
       RadioControlSumD(HardwareSerial& serial, const char *topic) :
         serial_(serial),
         topic_(topic),
@@ -60,6 +67,10 @@ namespace curio_firmware {
       {
       }
   
+      /// \brief Initialise the publishers and subscribers
+      ///
+      /// \param nh : ros::NodeHandle
+      ///       The ROS node handle.
       void init(ros::NodeHandle &nh) {
         // Capture NodeHandle
         nh_ = &nh;
@@ -67,14 +78,16 @@ namespace curio_firmware {
         // Advertise publishers
         nh_->advertise(channels_pub_);
       }
-      
+
+      /// \brief Publish all messages
       void publish() {
         channels_msg_.channels_length = channels_length_;
-        channels_msg_.channels = channels_;
+        channels_msg_.channels = (int16_t*)channels_;
         channels_pub_.publish(&channels_msg_);
         have_new_ = false;
       }
     
+      /// \brief Check serial for messages and decode 
       void update() {
         uint16_t num_available = 0; 
         uint16_t num_bytes = 0; 
@@ -84,10 +97,12 @@ namespace curio_firmware {
           num_bytes++;
       
           // Monitor potential issue with overflow:
-          // The serial buffer holds 64 bytes and the SUMD message contains 37 bytes. 
-          // If we read more than 27 bytes before encountering SUMD_HEADER_VENDOR_ID (0xA8),
-          // and the buffer is full, then we can't complete the message, because the additional
-          // data will be discarded - in this case flush the buffer and break.
+          // The serial buffer holds 64 bytes and the SUMD message
+          // contains 37 bytes. If we read more than 27 bytes before
+          // encountering SUMD_HEADER_VENDOR_ID (0xA8), and the buffer
+          // is full, then we can't complete the message, because the
+          // additional data will be discarded - in this case flush
+          // the buffer and break.
           bool has_overflowed = num_available > 63;    
           if (in_byte == SUMD_HEADER_VENDOR_ID) {
             // Reset the buffer position      
@@ -117,6 +132,9 @@ namespace curio_firmware {
         }
       }
   
+      /// \brief Check if new data has been received from the RC receiver
+      ///
+      /// \returns True if new data has been received and decoded.
       bool have_new() const {
         return have_new_;
       }
@@ -136,7 +154,8 @@ namespace curio_firmware {
       uint8_t rssi_ = 0;
       uint8_t rx_count_ = 0;
       uint16_t channel_count_ = 0;
-    
+
+      /// \brief Flush the serial input buffer.
       void flushSerialRx() {
         while (serial_.read() > 0);
       }

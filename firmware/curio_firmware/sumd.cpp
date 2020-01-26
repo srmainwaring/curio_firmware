@@ -1,12 +1,12 @@
 /*
  * Modified 2019 Rhys Mainwaring
  * 
- * Original code modified for use with rosserial_arduino and the CRC16 
- * code from the Technical Specification Document Hott SUMD Data Protocol.
+ * Original code modified for use with rosserial_arduino.
  * 
- * SUMD decoder:
+ * Source:
  * https://github.com/ArduPilot/ardupilot/blob/master/libraries/AP_HAL/utility/sumd.cpp
  * 
+ * Ardupilot comments and original license included below.  
  */
 
 /*
