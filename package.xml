@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>curio_firmware</name>
+  <version>0.0.0</version>
+  <description>Firmware for Curio, a Sawwpy Rover</description>
+    <maintainer email="rhys.mainwaring@me.com">Rhys Mainwaring</maintainer>
+    <license>BSD-3-Clause</license>
+    <url type="website">https://github.com/srmainwaring/curio_firmware</url>
+    <url type="repository">https://github.com/srmainwaring/curio_firmware</url>
+    <url type="bugtracker">https://github.com/srmainwaring/curio_firmware/issues</url>
+    <author email="rhys.mainwaring@me.com">Rhys Mainwaring</author>
+    <buildtool_depend>catkin</buildtool_depend>
+    <depend>curio_msgs</depend>
+</package>
