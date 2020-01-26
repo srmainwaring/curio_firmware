@@ -46,8 +46,8 @@
  *
  ****************************************************************************/
 
-#ifndef CURIO_FIRMWARE_SUMD_H
-#define CURIO_FIRMWARE_SUMD_H
+#ifndef CURIO_FIRMWARE_SUMD_H_
+#define CURIO_FIRMWARE_SUMD_H_
 
 /**
  * @file sumd.h
@@ -74,4 +74,4 @@
 int sumd_decode(uint8_t byte, uint8_t *rssi, uint8_t *rx_count, uint16_t *channel_count,
                 uint16_t *channels, uint16_t max_chan_count);
 
-#endif // CURIO_FIRMWARE_SUMD_H
+#endif // CURIO_FIRMWARE_SUMD_H_

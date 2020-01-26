@@ -1,5 +1,5 @@
 #ifndef ROS_CUSTOM_H_
-#define ROS_CUSTOM_H
+#define ROS_CUSTOM_H_
 
 #include "ros_dummy.h"
 #include "ros/node_handle.h"
@@ -14,4 +14,4 @@ namespace ros {
   typedef NodeHandle_<ArduinoHardware, 8, 8, 1024, 1024> NodeHandle; 
 }
 
-#endif // ROS_CUSTOM_H
+#endif // ROS_CUSTOM_H_

@@ -100,10 +100,19 @@
  *
  */
 
+#define RADIO_CONTROL_ENABLE  1
+#define RADIO_CONTROL_SUMD    1
+
 #include "ros.h"
 #include "lobot_serial.h"
-#include "radio_control.h"
-#include "sumd.h"
+
+#if RADIO_CONTROL_ENABLE
+#if RADIO_CONTROL_SUMD
+#include "radio_control_sumd.h"
+#else
+#include "radio_control_pwm.h"
+#endif
+#endif
 
 #include <curio_msgs/CurioServoCommands.h>
 #include <curio_msgs/CurioServoPositions.h>
@@ -114,7 +123,11 @@
 #include <inttypes.h>
 
 #define SERIAL_LX16A  Serial1
+
+#if RADIO_CONTROL_ENABLE
 #define SERIAL_RC     Serial2
+#endif
+
 #define NUM_WHEELS    6
 #define NUM_STEERS    4
 
@@ -185,68 +198,27 @@ uint32_t last_stat_millis  = 600;   // [ms]
 ////////////////////////////////////////////////////////////////////////////////
 // Radio Control SUMD Decoder
 
-RadioControl rc("radio_ctrl/channels");
+#if RADIO_CONTROL_ENABLE
 
 #define RC_UPDATE_RATE        20    // [Hz]
 uint32_t last_rc_millis      = 0;   // [ms]
-bool have_new = false;
 
-// SUMD decoder workspace variables
-#define SUMD_HEADER_VENDOR_ID 0xA8  // Identify the start of the SUMD message
-uint8_t rssi = 0;
-uint8_t rx_count = 0;
-uint16_t channel_count = 0;
+#if RADIO_CONTROL_SUMD
+curio_firmware::RadioControlSumD rc(SERIAL_RC, "radio_ctrl/channels");
+#else
+curio_firmware::RadioControlPwm rc("radio_ctrl/channels");
+#endif
 
-void flushSerialRx(HardwareSerial& serialX) {
-  while(SERIAL_RC.read() > 0) ;
-}
+#endif
 
-void decodeNext(HardwareSerial& serialX) {
-  uint16_t num_available = 0; 
-  uint16_t num_bytes = 0; 
-  while ((num_available = SERIAL_RC.available()) > 0) {
-
-    uint8_t in_byte = SERIAL_RC.read();
-    num_bytes++;
-
-    // Monitor potential issue with overflow:
-    // The serial buffer holds 64 bytes and the SUMD message contains 37 bytes. 
-    // If we read more than 27 bytes before encountering SUMD_HEADER_VENDOR_ID (0xA8),
-    // and the buffer is full, then we can't complete the message, because the additional
-    // data will be discarded - in this case flush the buffer and break.
-    bool has_overflowed = num_available > 63;    
-    if (in_byte == SUMD_HEADER_VENDOR_ID) {
-      // Reset the buffer position      
-      if (has_overflowed && num_bytes > 26) {
-        flushSerialRx(SERIAL_RC);
-        break;
-      }
-    }
-
-    int res = sumd_decode(in_byte, &rssi, &rx_count, &channel_count, rc.channels, rc.channels_length);
-    switch (res) {
-    case 0:   // Success
-      have_new = true;
-      return;     
-    case 1:   // Accumulating - continue
-      // Buffer the current message.
-      break;
-    case 2:   // Unknown packet
-      return;
-    case 3:   // Out of sync - continue
-      break;
-    case 4:   // Checksum error
-      return;
-    default:  // Unknown error
-      return;
-    }      
-  }
-}
 
 void setup() {  
   // Initialise serial communication
   SERIAL_LX16A.begin(115200);
+
+#if RADIO_CONTROL_ENABLE
   SERIAL_RC.begin(115200);
+#endif
 
   // Initialise the ROS node
   nh.initNode();
@@ -258,8 +230,10 @@ void setup() {
   nh.loginfo("Starting Curio Arduino node...");
     
   // Initialise ROS interfaces for RC
-  nh.loginfo("Initialising radio control SUMD decoder");  
+#if RADIO_CONTROL_ENABLE
+  nh.loginfo("Initialising radio control decoder");  
   rc.init(nh);
+#endif
 
   // Parameters
   if (nh.getParam("~wheel_servo_ids", wheel_ids_, NUM_WHEELS)) {
@@ -301,18 +275,19 @@ void setup() {
 }
 
 void loop() {
-  // Decode the most recently received RC serial data.
-  decodeNext(SERIAL_RC);
+#if RADIO_CONTROL_ENABLE
+  // Process RC data.
+  rc.update();
   
   // Publish the most recently decoded message.
   if (millis() > last_rc_millis + 1000/RC_UPDATE_RATE) {
     last_rc_millis += 1000/RC_UPDATE_RATE;
-    if (have_new) {
-      have_new = false;
+    if (rc.have_new()) {
       rc.publish();
       nh.spinOnce();
     }
   }
+#endif
 
   // Read (and publish) the servo positions
   if (millis() > last_pos_millis + 1000/READ_POS_UPDATE_RATE) {    
@@ -431,4 +406,5 @@ void loop() {
     nh.spinOnce();
   }
     
+  nh.spinOnce();  
 }
