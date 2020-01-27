@@ -68,10 +68,10 @@
  * ----------
  * ~wheel_servo_ids : list
  *    A list of integer wheel servo ids,
- *    has (default [11, 12, 13, 21, 22, 23]
+ *    has (default [11, 12, 13, 21, 22, 23])
  * ~steer_servo_ids : list
  *    A list of integer steering servo ids,
- *    has (default [111, 131, 211, 231]
+ *    has (default [111, 131, 211, 231])
  * ~steer_servo_angle_offsets : list
  *    A list of integer steering servo angle offsets for adjusting
  *    steering trim, has (default [0, 0, 0, 0]
