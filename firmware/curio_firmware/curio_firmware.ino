@@ -74,7 +74,7 @@
  *    has (default [111, 131, 211, 231])
  * ~steer_servo_angle_offsets : list
  *    A list of integer steering servo angle offsets for adjusting
- *    steering trim, has (default [0, 0, 0, 0]
+ *    steering trim, has (default [0, 0, 0, 0])
  *
  * Publications
  * ------------

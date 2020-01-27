@@ -40,6 +40,10 @@ used by the PWM decoder to handle interrupts for each of the RC channels.
 
 ## Installation
 
+Here we describe how to build and install the firmware to you Arduino.
+In the following SKETCHBOOK_PATH is the path to your Arduino
+sketchbook directory.
+
 Clone the repository into your catkin workspace, then build:
 
 ```bash
@@ -49,18 +53,18 @@ cd ~/curio_ws
 catkin build
 ```
 
-To install the firmware on the Arduino:
+Build and install the ROS libraries for the Arduino:
 
 ```bash
-cd SKETCHBOOK_PATH
+cd ~/curio_ws
+rosrun rosserial_arduino make_libraries.py .
+cp -rp ./ros_lib SKETCHBOOK_PATH/libraries
 ```
 
-where SKETCHBOOK_PATH is the path to your Arduino sketchbook directory.
-
-Copy the firmware source code to the sketchbook folder:
+Copy the firmware source to the sketchbook folder:
 
 ```bash
-cp -rp `rospack find curio_firmware`/firmware/curio_firmware curio_firmware
+cp -rp `rospack find curio_firmware`/firmware/curio_firmware SKETCHBOOK_PATH/curio_firmware
 ```
 
 From the Arduino IDE open the sketch and adjust configuration settings
