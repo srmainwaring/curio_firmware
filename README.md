@@ -40,7 +40,7 @@ used by the PWM decoder to handle interrupts for each of the RC channels.
 
 ## Installation
 
-Here we describe how to build and install the firmware to you Arduino.
+Here we describe how to build and install the firmware to your Arduino.
 In the following SKETCHBOOK_PATH is the path to your Arduino
 sketchbook directory.
 
