@@ -97,7 +97,7 @@
  * 
  * Publications
  * ------------
- * radio_ctrl/channels : curio_msgs::Channels
+ * radio/channels : curio_msgs::Channels
  *    PWM values for one or more radio control channels
  * 
  * SUMD decoder
@@ -251,9 +251,9 @@ uint32_t last_stat_millis  = 600;   // [ms]
 #define RC_UPDATE_RATE        20    // [Hz]
 uint32_t last_rc_millis      = 0;   // [ms]
 #if ENABLE_RADIO_CONTROL_SUMD
-curio_firmware::RadioControlSumD rc(SERIAL_RC, "radio_ctrl/channels");
+curio_firmware::RadioControlSumD rc(SERIAL_RC, "radio/channels");
 #else
-curio_firmware::RadioControlPwm rc("radio_ctrl/channels");
+curio_firmware::RadioControlPwm rc("radio/channels");
 #endif // ENABLE_RADIO_CONTROL_SUMD
 #endif // ENABLE_RADIO_CONTROL_DECODER
 

@@ -1,4 +1,4 @@
-# Firmware for Curio - a Sawppy Rover
+# Firmware for Curio
 
 An Arduino Mega 2560
 [`rosserial_arduino`](http://wiki.ros.org/rosserial_arduino)
@@ -68,7 +68,8 @@ cp -rp `rospack find curio_firmware`/firmware/curio_firmware SKETCHBOOK_PATH/cur
 ```
 
 From the Arduino IDE open the sketch and adjust configuration settings
-as required. Finally compile the sketch and download it to your Arduino.
+described in the section below as required. Finally compile the sketch
+and download it to your Arduino.
 
 ## Configuration
 
@@ -133,8 +134,8 @@ See the documentation for [`curio`](https://github.com/srmainwaring/curio.git).
 
 ## ROS
 
-The list of parameters, publications and subscriptions supported
-is affected by the configurations settings. For instance if radio control
+The parameters, publications and subscriptions supported
+are affected by the configuration settings. For instance if radio control
 is disabled the `curio_msgs::Channels` messages will not be published.
 
 ### Parameters
@@ -149,16 +150,16 @@ is disabled the `curio_msgs::Channels` messages will not be published.
 
 ### Publications
 
-- servo/positions : curio_msgs::CurioServoPositions\
+- servo/positions : curio_msgs/CurioServoPositions\
     The wheel and steering servo positions (rate 30Hz)
-- servo/states : curio_msgs::CurioServoStates\
+- servo/states : curio_msgs/CurioServoStates\
     The diagnostic state of each servo (rate 1Hz)
-- radio_ctrl/channels : curio_msgs::Channels\
+- radio/channels : curio_msgs/Channels\
     PWM values for one or more radio control channels
 
 ### Subscriptions
 
-- servo/commands : curio_msgs::CurioServoCommands\
+- servo/commands : curio_msgs/CurioServoCommands\
     The commanded duty and position for the wheel and steering servos
 
 ## License
