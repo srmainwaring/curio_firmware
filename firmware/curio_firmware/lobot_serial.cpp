@@ -104,6 +104,17 @@ void LobotSerialServoAngleAdjust(HardwareSerial &SerialX, uint8_t id, uint8_t de
   SerialX.write(buf, 7);
 }
 
+void LobotSerialServoAngleWrite(HardwareSerial &SerialX, uint8_t id)
+{
+  byte buf[6];
+  buf[0] = buf[1] = LOBOT_SERVO_FRAME_HEADER;
+  buf[2] = id;
+  buf[3] = 3;
+  buf[4] = LOBOT_SERVO_ANGLE_OFFSET_WRITE;
+  buf[5] = LobotCheckSum(buf);
+  SerialX.write(buf, 6);
+}
+
 void LobotSerialServoSetID(HardwareSerial &SerialX, uint8_t oldID, uint8_t newID)
 {
   byte buf[7];
@@ -360,4 +371,3 @@ int LobotSerialServoReadVin(HardwareSerial &SerialX, uint8_t id)
 #endif
   return ret;
 }
-

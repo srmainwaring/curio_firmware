@@ -22,6 +22,7 @@ byte LobotCheckSum(byte buf[]);
 void LobotSerialServoMove(HardwareSerial &SerialX, uint8_t id, int16_t position, uint16_t time);
 void LobotSerialServoStopMove(HardwareSerial &SerialX, uint8_t id);
 void LobotSerialServoAngleAdjust(HardwareSerial &SerialX, uint8_t id, uint8_t deviation);
+void LobotSerialServoAngleWrite(HardwareSerial &SerialX, uint8_t id);
 void LobotSerialServoSetID(HardwareSerial &SerialX, uint8_t oldID, uint8_t newID);
 void LobotSerialServoSetMode(HardwareSerial &SerialX, uint8_t id, uint8_t Mode, int16_t Speed);
 void LobotSerialServoLoad(HardwareSerial &SerialX, uint8_t id);
