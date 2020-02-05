@@ -185,8 +185,8 @@ ros::NodeHandle nh;
 // fast update (~ 25 Hz)
 curio_msgs::CurioServoPositions curio_positions_msg_;
 ros::Publisher curio_positions_pub_("servo/positions", &curio_positions_msg_);
-int16_t wheel_positions_[NUM_WHEELS];
-int16_t steer_positions_[NUM_STEERS]; 
+int16_t wheel_positions_[NUM_WHEELS] = {0, 0, 0, 0, 0, 0};
+int16_t steer_positions_[NUM_STEERS] = {500, 500, 500, 500}; 
 
 // Default servo identifiers and angle offsets, overwritten by param
 // server values if available.
@@ -203,8 +203,8 @@ curio_msgs::LX16AState steer_states_[NUM_STEERS];
 // CurioServoCommands (servo/commands)
 #define SERVO_COMMAND_TIMEOUT 750   // [ms]
 uint32_t last_cmd_rec_millis = 0;   // [ms]
-int16_t wheel_commands_[NUM_WHEELS];
-int16_t steer_commands_[NUM_STEERS]; 
+int16_t wheel_commands_[NUM_WHEELS] = {0, 0, 0, 0, 0, 0};
+int16_t steer_commands_[NUM_STEERS] = {500, 500, 500, 500}; 
 
 void servoCommandsCallback(const curio_msgs::CurioServoCommands& msg) {
   // Update watchdog for servo commands  
@@ -261,27 +261,33 @@ void setup() {
   // Initialise the ROS node
   nh.initNode();
 
-  // Wait for connection
-  while(!nh.connected()) {
-    nh.spinOnce();
-  }
-  nh.loginfo("Starting Curio Arduino node...");
-    
   // Initialise ROS interfaces for RC
 #if ENABLE_RADIO_CONTROL_DECODER
-  nh.loginfo("Initialising radio control decoder");  
-
-  // Initialise serial communication
   SERIAL_RC.begin(115200);
   rc.init(nh);
 #endif // ENABLE_RADIO_CONTROL_DECODER
 
   // Initialise ROS interfaces for LX-16A
 #if ENABLE_ARDUINO_LX16A_DRIVER
-  nh.loginfo("Initialising servo controller");  
-
-  // Initialise serial communication
+  // Serial 
   SERIAL_LX16A.begin(115200);
+
+  // Publications
+  nh.advertise(curio_positions_pub_);
+  nh.advertise(curio_states_pub_);
+
+  // Subscriptions
+  nh.subscribe(curio_commands_sub_);
+#endif ENABLE_ARDUINO_LX16A_DRIVER
+
+  // Wait for connection
+  while(!nh.connected()) {
+    nh.spinOnce();
+  }
+  nh.loginfo("Starting Curio Arduino node...");
+    
+  // Get parameters and adjust trim
+#if ENABLE_ARDUINO_LX16A_DRIVER
 
   // Parameters
   if (nh.getParam("~wheel_servo_ids", wheel_ids_, NUM_WHEELS)) {
@@ -294,30 +300,16 @@ void setup() {
     nh.loginfo("Loaded params: steer_servo_angle_offsets");
   }
 
-  // Publications
-  nh.advertise(curio_positions_pub_);
-  nh.advertise(curio_states_pub_);
-
-  // Subscriptions
-  nh.subscribe(curio_commands_sub_);
-
   // Set steering trim and servo mode.
   nh.loginfo("Setting steering trim");
   for (uint8_t i=0; i<NUM_STEERS; ++i) {
     uint8_t servo_id = steer_ids_[i];
     int16_t deviation = steer_angle_offsets_[i];    
-    LobotSerialServoAngleAdjust(SERIAL_LX16A, servo_id, deviation);
     LobotSerialServoSetMode(SERIAL_LX16A, servo_id, 0, 0);
+    LobotSerialServoAngleAdjust(SERIAL_LX16A, servo_id, deviation);
+    LobotSerialServoAngleWrite(SERIAL_LX16A, servo_id);
   }
 
-  // Initialise the commanded wheel duty and steering position  
-  nh.loginfo("Initialising wheel duty and steering position");
-  for (uint8_t i=0; i<NUM_WHEELS; ++i) {
-    wheel_commands_[i] = 0;
-  }
-  for (uint8_t i=0; i<NUM_STEERS; ++i) {
-    steer_commands_[i] = 500;
-  }
 #endif // ENABLE_ARDUINO_LX16A_DRIVER
 
   nh.spinOnce();  
@@ -329,7 +321,7 @@ void loop() {
   rc.update();
   
   // Publish the most recently decoded message.
-  if (millis() > last_rc_millis + 1000/RC_UPDATE_RATE) {
+  if (millis() - last_rc_millis > 1000/RC_UPDATE_RATE) {
     last_rc_millis += 1000/RC_UPDATE_RATE;
     if (rc.have_new()) {
       rc.publish();
@@ -340,7 +332,7 @@ void loop() {
 
 #if ENABLE_ARDUINO_LX16A_DRIVER
   // Read (and publish) the servo positions
-  if (millis() > last_pos_millis + 1000/READ_POS_UPDATE_RATE) {    
+  if (millis() - last_pos_millis > 1000/READ_POS_UPDATE_RATE) {    
     last_pos_millis += 1000/READ_POS_UPDATE_RATE;
 
     // Read wheel servos
@@ -374,12 +366,12 @@ void loop() {
   }    
 
   // Send move commands to the wheel and steering servos
-  if (millis() > last_control_millis + 1000/CONTROL_UPDATE_RATE) {    
+  if (millis() - last_control_millis > 1000/CONTROL_UPDATE_RATE) {    
     last_control_millis += 1000/CONTROL_UPDATE_RATE;
 
     // Check whether we have had a servo command recently.
     // If so we stop the motors.
-    bool has_timed_out = millis() > last_cmd_rec_millis + SERVO_COMMAND_TIMEOUT;
+    bool has_timed_out = millis() - last_cmd_rec_millis > SERVO_COMMAND_TIMEOUT;
 
     // Set the duty for the wheel servos
     for (uint8_t i=0; i<NUM_WHEELS; ++i) {
@@ -399,7 +391,7 @@ void loop() {
   }
 
   // Read servo voltages
-  if (millis() > last_vin_millis + 1000/READ_VIN_UPDATE_RATE) {
+  if (millis() - last_vin_millis > 1000/READ_VIN_UPDATE_RATE) {
     last_vin_millis += 1000/READ_VIN_UPDATE_RATE;
 
     // Read wheel servo vin (-2048 : LOBOT flag for invalid vin)
@@ -424,7 +416,7 @@ void loop() {
   }
 
   // Publish servo status 
-  if (millis() > last_stat_millis + 1000/PUB_STAT_UPDATE_RATE) {
+  if (millis() - last_stat_millis > 1000/PUB_STAT_UPDATE_RATE) {
     last_stat_millis += 1000/PUB_STAT_UPDATE_RATE;
 
     // Wheel joints
