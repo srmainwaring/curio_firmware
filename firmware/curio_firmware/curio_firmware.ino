@@ -148,6 +148,9 @@
 /// \brief Select the SUMD radio control decoder, otherwise use PWM
 #define ENABLE_RADIO_CONTROL_SUMD       1
 
+/// \brief Enable the BNO080 IMU
+#define ENABLE_BNO080_IMU               1
+
 #include "ros.h"
 #include "lobot_serial.h"
 
@@ -166,9 +169,16 @@
 #include <curio_msgs/LX16AState.h>
 #endif // ENABLE_ARDUINO_LX16A_DRIVER
 
+#if ENABLE_BNO080_IMU
+#include <curio_msgs/CurioImu.h>
+#include <SparkFun_BNO080_Arduino_Library.h>
+#include <Wire.h>
+#endif // #if ENABLE_BNO080_IMU
+
 #include <HardwareSerial.h>
 #include <inttypes.h>
 
+#define BAUDRATE        115200
 #define SERIAL_LX16A    Serial1
 #define SERIAL_RC       Serial2
 #define NUM_WHEELS      6
@@ -257,8 +267,36 @@ curio_firmware::RadioControlPwm rc("radio/channels");
 #endif // ENABLE_RADIO_CONTROL_SUMD
 #endif // ENABLE_RADIO_CONTROL_DECODER
 
+////////////////////////////////////////////////////////////////////////
+// IMU: BNO080
+
+#if ENABLE_BNO080_IMU
+
+#define PIN_IMU_RST                 10    // IMU reset pin - not currently used
+#define PIN_IMU_INT                 11    // IMU interrupt pin - use to prevent blocking.
+#define IMU_NUM_DATA_READS          10    // Number of times to read I2C data each loop.
+#define IMU_ROT_VECTOR_DATA_RATE   100    // [Hz] BNO080 Datasheet 1000-3927 p50/57.
+#define IMU_ACCEL_DATA_RATE        100    // [Hz] BNO080 can update at up to 400Hz, but there is
+#define IMU_GYRO_DATA_RATE         100    // [Hz] no advantage in this when we can only publish
+#define IMU_MAG_DATA_RATE          100    // [Hz] to ROS at about 30Hz.
+#define IMU_PUB_RATE                30    // [Hz] Rate at which curio_msgs/CurioImu is published.
+uint32_t last_imu_pub_millis =       0;   // [ms]
+
+const char* imu_topic_ = "sensors/curio_imu";
+const char* imu_frame_id_ = "imu";
+curio_msgs::CurioImu imu_msg_;
+ros::Publisher imu_pub_(imu_topic_, &imu_msg_);
+
+BNO080 imu_;
+
+#endif // ENABLE_BNO080_IMU
+
+////////////////////////////////////////////////////////////////////////
+// Setup
+
 void setup() {  
   // Initialise the ROS node
+  nh.getHardware()->setBaud(BAUDRATE);
   nh.initNode();
 
   // Initialise ROS interfaces for RC
@@ -279,6 +317,13 @@ void setup() {
   // Subscriptions
   nh.subscribe(curio_commands_sub_);
 #endif ENABLE_ARDUINO_LX16A_DRIVER
+
+#if ENABLE_BNO080_IMU
+
+  // Publications
+  nh.advertise(imu_pub_); 
+
+#endif // ENABLE_BNO080_IMU
 
   // Wait for connection
   while(!nh.connected()) {
@@ -312,8 +357,41 @@ void setup() {
 
 #endif // ENABLE_ARDUINO_LX16A_DRIVER
 
+#if ENABLE_BNO080_IMU
+
+  // Initialise I2C communication to the IMU
+  Wire.begin();
+
+  // Check IMU is present.  
+  if (imu_.begin(BNO080_DEFAULT_ADDRESS, Wire, PIN_IMU_INT) == false)
+  {
+    nh.logerror("BNO080 not detected at default I2C address. Check jumpers and datasheet. Freezing...");
+    while(1);
+  }
+
+  //Increase I2C data rate to 400kHz
+  Wire.setClock(400000);
+
+  // Enable sensors
+  imu_.enableRotationVector(1000/IMU_ROT_VECTOR_DATA_RATE);
+  nh.loginfo("Rotation vector enabled [rad]");
+
+  imu_.enableAccelerometer(1000/IMU_ACCEL_DATA_RATE);
+  nh.loginfo("Accelerometer enabled [m/s]");
+
+  imu_.enableGyro(1000/IMU_GYRO_DATA_RATE);
+  nh.loginfo("Gyro enabled [rad/s]");
+
+  imu_.enableMagnetometer(1000/IMU_MAG_DATA_RATE);
+  nh.loginfo("Magnetometer enabled [µT]");
+
+#endif // ENABLE_BNO080_IMU
+
   nh.spinOnce();  
 }
+
+////////////////////////////////////////////////////////////////////////
+// Loop
 
 void loop() {
 #if ENABLE_RADIO_CONTROL_DECODER
@@ -447,6 +525,47 @@ void loop() {
     nh.spinOnce();
   }
 #endif // ENABLE_ARDUINO_LX16A_DRIVER
+
+#if ENABLE_BNO080_IMU
+
+  // Read IMU data - BNO080::dataAvailable() carries out one read of the IC2 bus.
+  // We carry out multiple reads to update each of the monitored sensor fields:
+  // rotation vector, acceleration, angular velocity, etc. 
+  for (uint8_t i=0; i<IMU_NUM_DATA_READS; ++i) {
+    imu_.dataAvailable();
+  }
+  
+  // Publish IMU data
+  if (millis() - last_imu_pub_millis > 1000/IMU_PUB_RATE)
+  {
+    last_imu_pub_millis += 1000/IMU_PUB_RATE;
+
+    // Publish IMU message
+    imu_msg_.header.frame_id = imu_frame_id_;
+    imu_msg_.header.stamp = nh.now();
+
+    imu_msg_.orientation.x = imu_.getQuatI();
+    imu_msg_.orientation.y = imu_.getQuatJ();
+    imu_msg_.orientation.z = imu_.getQuatK();
+    imu_msg_.orientation.w = imu_.getQuatReal();
+
+    imu_msg_.angular_velocity.x = imu_.getGyroX();
+    imu_msg_.angular_velocity.y = imu_.getGyroY();
+    imu_msg_.angular_velocity.z = imu_.getGyroZ();
+
+    imu_msg_.linear_acceleration.x = imu_.getAccelX();
+    imu_msg_.linear_acceleration.y = imu_.getAccelY();
+    imu_msg_.linear_acceleration.z = imu_.getAccelZ();
+
+    imu_msg_.magnetic_field.x = imu_.getMagX();
+    imu_msg_.magnetic_field.y = imu_.getMagY();
+    imu_msg_.magnetic_field.z = imu_.getMagZ();
+    
+    imu_pub_.publish(&imu_msg_);
+    
+    nh.spinOnce();
+  }  
+#endif // ENABLE_BNO080_IMU
 
   nh.spinOnce();  
 }

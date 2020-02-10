@@ -3,7 +3,7 @@
 
 #include "ros_dummy.h"
 #include "ros/node_handle.h"
-#include "arduino_hardware.h"
+#include <ArduinoHardware.h>
 
 namespace ros {
   // Custom buffers:
