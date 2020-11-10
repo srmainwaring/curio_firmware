@@ -61,6 +61,31 @@ rosrun rosserial_arduino make_libraries.py .
 cp -rp ./ros_lib SKETCHBOOK_PATH/libraries
 ```
 
+Add a file `ros_dummy.h` to the ROS Arduino library in `SKETCHBOOK_PATH/libraries/ros_lib/` containing the following:
+
+```c++
+// ros_dummy.h
+// A placeholder so that the Arduino IDE can find header files
+// in subdirectories of ros_lib when re-declaring ros.h 
+// in your project
+//
+// In your copy of ros.h include this file. 
+//
+// Resources:
+//  http://wiki.ros.org/rosserial_arduino/Tutorials/NodeHandle%20and%20ArduinoHardware
+//  https://www.codeproject.com/Articles/1279552/Rodney-A-Long-Time-Coming-Autonomous-Robot-Part-7
+
+#ifndef _ROS_LIB_ROS_DUMMY_H_
+#define _ROS_LIB_ROS_DUMMY_H_
+
+namespace ros {
+}
+
+#endif // _ROS_LIB_ROS_DUMMY_H_
+```
+
+(My thanks to [Phil Hopley's excellent blog](https://www.codeproject.com/Articles/1279552/Rodney-A-Long-Time-Coming-Autonomous-Robot-Part-7) for his explanation of why this is is needed).
+
 Copy the firmware source to the sketchbook folder:
 
 ```bash
